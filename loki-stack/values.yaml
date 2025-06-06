@@ -1,0 +1,41 @@
+loki:
+  enabled: true
+  persistence:
+    # enabled: true #for eks
+    enabled: false #for local testing
+    # # For eks
+    # storageClassName: "gp2"
+    # size: 50Gi
+
+    # For local testing with kind (uncomment for local)
+    storageClassName: "standard"
+    size: 20Gi # Smaller size for local testing
+
+  config:
+    auth_enabled: false
+    server:
+      http_listen_port: 3100
+    common:
+      storage:
+      # for eks
+        # s3:
+        #   endpoint: s3.amazonaws.com
+        #   bucketnames: your-loki-bucket
+        #   region: us-east-1
+        #   access_key_id: ""
+        #   secret_access_key: ""
+        # For local testing - filesystem storage
+        filesystem:
+          chunks_directory: /var/loki/chunks
+          rules_directory: /var/loki/rules
+
+      replication_factor: 1
+      ring:
+        kvstore:
+          store: inmemory
+
+promtail:
+  enabled: true
+  config:
+    clients:
+    - url: http://loki:3100/loki/api/v1/push

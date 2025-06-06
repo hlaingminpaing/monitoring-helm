@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-msteams
+  namespace: monitoring
+data:
+  config.yaml: |
+    connectors:
+      - channel: "YOUR_MS_TEAMS_WEBHOOK_URL"
+        # For critical alerts
+      - channel: "YOUR_CRITICAL_MS_TEAMS_WEBHOOK_URL"
+        path: "/critical"

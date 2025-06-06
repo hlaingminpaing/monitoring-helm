@@ -1,0 +1,129 @@
+global:
+  scrape_interval: 15s
+
+namespaceOverride: "monitoring"
+
+grafana:
+  enabled: true
+  adminPassword: "admin" # Change in production
+  persistence:
+    # enabled: true # for eks
+    enabled: false # for local testing
+    # # For eks
+    # storageClassName: "gp2"
+    # size: 10Gi
+
+    # For local testing with kind (uncomment for local)
+    storageClassName: "standard"
+    size: 2Gi # Smaller size for local testing
+
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+    datasources:
+      enabled: true
+      label: grafana_datasource
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: true
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+
+prometheus:
+  prometheusSpec:
+    retention: 30d
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          # For eks
+          # storageClassName: "gp2"
+          # accessModes: ["ReadWriteOnce"]
+          # resources:
+          #   requests:
+          #     storage: 50Gi
+
+          # For local testing with kind (uncomment for local)
+          storageClassName: "standard" # kind typically uses 'standard'
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 2Gi # Smaller size for local testing
+
+
+    ruleSelector:
+      matchLabels:
+        prometheus: kube-prometheus-stack
+        role: alert-rules
+    additionalAlertManagerConfigs:
+    - static_configs:
+      - targets: ["alertmanager-operated:9093"]
+    additionalPrometheusRulesMap:
+    node-alerts:
+      groups:
+      - name: node-alerts
+        rules:
+        - alert: HighNodeCPU
+          expr: (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100 > 80
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "High CPU usage on node {{ $labels.instance }}"
+            description: "CPU usage is {{ $value }}% on node {{ $labels.instance }}"
+            
+        - alert: HighNodeMemory
+          expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 < 20
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "High memory usage on node {{ $labels.instance }}"
+            description: "Only {{ $value }}% memory available on node {{ $labels.instance }}"
+            
+        - alert: NodeDown
+          expr: up{job="node-exporter"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Node {{ $labels.instance }} is down"
+            description: "Node {{ $labels.instance }} has been down for more than 5 minutes"
+
+alertmanager:
+  enabled: true
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      group_by: ['namespace']
+      group_wait: 10s
+      group_interval: 5m
+      repeat_interval: 3h
+      receiver: 'msteams'
+      routes:
+      - match:
+          severity: critical
+        receiver: 'msteams-critical'
+    receivers:
+    - name: 'msteams'
+      webhook_configs:
+      - url: 'http://alertmanager-msteams:2000/'
+        send_resolved: true
+    - name: 'msteams-critical'
+      webhook_configs:
+      - url: 'http://alertmanager-msteams:2000/critical'
+        send_resolved: true
+
+prometheus-node-exporter:
+  enabled: true
+
+kube-state-metrics:
+  enabled: true
