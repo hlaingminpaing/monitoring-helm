@@ -122,6 +122,13 @@ alertmanager:
       - url: 'http://alertmanager-msteams:2000/critical'
         send_resolved: true
 
+
+# Add this to create the ConfigMap
+additionalAlertManagerConfigs:
+- name: alertmanager-msteams-config
+  key: config.yaml
+  path: /etc/alertmanager/msteams-config.yaml
+  
 prometheus-node-exporter:
   enabled: true
 
