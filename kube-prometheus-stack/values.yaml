@@ -7,13 +7,11 @@ grafana:
   enabled: true
   adminPassword: "admin" # Change in production
   persistence:
-    # enabled: true # for eks
-    enabled: false # for local testing
-    # # For eks
+    enabled: false # Disabled for local testing
+    # For EKS (commented out)
     # storageClassName: "gp2"
     # size: 10Gi
-
-    # For local testing with kind (uncomment for local)
+    # For local testing with kind
     storageClassName: "standard"
     size: 2Gi # Smaller size for local testing
 
@@ -42,21 +40,23 @@ prometheus:
     retention: 30d
     storageSpec:
       volumeClaimTemplate:
+        metadata:
+          labels:
+            app: prometheus
         spec:
-          # For eks
+          # For EKS (commented out)
           # storageClassName: "gp2"
           # accessModes: ["ReadWriteOnce"]
           # resources:
           #   requests:
           #     storage: 50Gi
 
-          # For local testing with kind (uncomment for local)
-          storageClassName: "standard" # kind typically uses 'standard'
+          # For local testing with kind
+          storageClassName: "standard"
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 2Gi # Smaller size for local testing
-
+              storage: 2Gi
 
     ruleSelector:
       matchLabels:
@@ -66,36 +66,36 @@ prometheus:
     - static_configs:
       - targets: ["alertmanager-operated:9093"]
     additionalPrometheusRulesMap:
-    node-alerts:
-      groups:
-      - name: node-alerts
-        rules:
-        - alert: HighNodeCPU
-          expr: (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100 > 80
-          for: 10m
-          labels:
-            severity: critical
-          annotations:
-            summary: "High CPU usage on node {{ $labels.instance }}"
-            description: "CPU usage is {{ $value }}% on node {{ $labels.instance }}"
+      node-alerts:
+        groups:
+        - name: node-alerts
+          rules:
+          - alert: HighNodeCPU
+            expr: (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100 > 80
+            for: 10m
+            labels:
+              severity: critical
+            annotations:
+              summary: "High CPU usage on node {{ $labels.instance }}"
+              description: "CPU usage is {{ $value }}% on node {{ $labels.instance }}"
             
-        - alert: HighNodeMemory
-          expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 < 20
-          for: 10m
-          labels:
-            severity: critical
-          annotations:
-            summary: "High memory usage on node {{ $labels.instance }}"
-            description: "Only {{ $value }}% memory available on node {{ $labels.instance }}"
+          - alert: HighNodeMemory
+            expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 < 20
+            for: 10m
+            labels:
+              severity: critical
+            annotations:
+              summary: "High memory usage on node {{ $labels.instance }}"
+              description: "Only {{ $value }}% memory available on node {{ $labels.instance }}"
             
-        - alert: NodeDown
-          expr: up{job="node-exporter"} == 0
-          for: 5m
-          labels:
-            severity: critical
-          annotations:
-            summary: "Node {{ $labels.instance }} is down"
-            description: "Node {{ $labels.instance }} has been down for more than 5 minutes"
+          - alert: NodeDown
+            expr: up{job="node-exporter"} == 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Node {{ $labels.instance }} is down"
+              description: "Node {{ $labels.instance }} has been down for more than 5 minutes"
 
 alertmanager:
   enabled: true

@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-msteams
+  namespace: monitoring
+  labels:
+    app: alertmanager-msteams
+data:
+  config.yaml: |
+    connectors:
+      # Warning alerts
+      - channel: "https://teams.microsoft.com/webhookurl/WARNING_CHANNEL"
+        title: "Alert: {{ .Status | toUpper }}"
+        text: |
+          **Summary:** {{ .CommonAnnotations.summary }}
+          **Description:** {{ .CommonAnnotations.description }}
+          **Severity:** {{ .CommonLabels.severity }}
+        color: "warning"
+        facts:
+          - name: Affected Resource
+            value: "{{ .CommonLabels.instance }}"
+          - name: Namespace
+            value: "{{ .CommonLabels.namespace }}"
+
+      # Critical alerts
+      - channel: "https://teams.microsoft.com/webhookurl/CRITICAL_CHANNEL"
+        path: "/critical"
+        title: "🚨 CRITICAL: {{ .CommonAnnotations.summary }}"
+        text: |
+          **URGENT ATTENTION NEEDED**
+          **Impact:** {{ .CommonAnnotations.description }}
+          **Severity:** {{ .CommonLabels.severity | upper }}
+        color: "danger"
+        facts:
+          - name: Affected Component
+            value: "{{ .CommonLabels.instance }}"
+          - name: Namespace
+            value: "{{ .CommonLabels.namespace }}"
+          - name: Alert Time
+            value: "{{ .StartsAt | formatDate }}"
