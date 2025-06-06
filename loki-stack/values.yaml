@@ -9,7 +9,7 @@ loki:
 
     # For local testing with kind (uncomment for local)
     storageClassName: "standard"
-    size: 20Gi # Smaller size for local testing
+    size: 3Gi # Smaller size for local testing
 
   config:
     auth_enabled: false
